@@ -1,38 +1,231 @@
-# Область применения - косметика, ее подбор на основе типа кожи и инд особенностей
+from __future__ import annotations
+from typing import Union # чтобы линтер не ругался
 
-# Возможные проблемы, сценарии и ситуации и связанные с ними хар-ки и симптомы
-from utils.issues import cosmetic_system_issues
 
-class CosmeticExpertSystem:
-    def __init__(self):
-        self.cosmetic_issues = cosmetic_system_issues
+class Ask:
+    def __init__(self, choices=['y', 'n']):
+        self.choices = choices
 
-    def get_recommendations(self, skin_type):
-        if skin_type in self.cosmetic_issues:
-            issue = self.cosmetic_issues[skin_type]
-            print(f"Тип кожи: {skin_type}")
-            print(f"Описание: {issue['description']}\n")
-            print("Рекомендации:")
-            for rec in issue['recommendations']:
-                print(f"- {rec}")
-            print("Симптомы:")
-            for sym in issue['symptoms']:
-                print(f"- {sym}")
-            
+    def ask(self):
+        if max(len(x) for x in self.choices) > 1:
+            for i, x in enumerate(self.choices):
+                print(f"{i}. {x}")
+            while True:
+                try:
+                    idx = int(input("номер варианта: "))
+                    if 0 <= idx < len(self.choices):
+                        return self.choices[idx]
+                except ValueError:
+                    pass
         else:
-            print("неверный тип кожи\n")
+            # Короткие варианты: y / n
+            print("/".join(self.choices))
+            ans = input().strip().lower()
+            return ans or self.choices[0]
 
-choice = int(input("Введите тип кожи (1-5; \n1 - dry_skin, \n2 - oily_skin, \n3 - combination_skin, \n4 - sensitive_skin, \n5 - ageing_skin): \n"))
 
-skin_types = {
-    1: "dry_skin",
-    2: "oily_skin",
-    3: "combination_skin",
-    4: "sensitive_skin",
-    5: "ageing_skin"
-}        
+class Content:
+    def __init__(self, x):
+        self.x = x
 
-# skin_type = input("Введите тип кожи (1-5; \n1 - dry_skin, \n2 - oily_skin, \n3 - combination_skin, \n4 - sensitive_skin, \n5 - ageing_skin): ").lower()
-skin_type = skin_types.get(choice, None)
-expert = CosmeticExpertSystem()
-expert.get_recommendations(skin_type)
+class If(Content):
+    pass
+
+class AND(Content):
+    pass
+
+class OR(Content):
+    pass
+
+Rule = Union[Ask, If, AND, OR, list[str]]
+
+class KnowledgeBase:
+    def __init__(self, rules: dict[str, Rule]):
+        self.rules = rules
+        self.memory = {}
+
+    def get(self, name):
+        if name in self.memory:
+            return self.memory[name]
+
+        for fld in self.rules.keys():
+            if fld == name or fld.startswith(name + ":"):
+                value = 'y' if fld == name else fld.split(':', 1)[1]
+                res = self.eval(self.rules[fld], field=name)
+                if res == 'y':
+                    self.memory[name] = value
+                    return value
+
+        res = self.eval(self.rules['default'], field=name)
+        self.memory[name] = res
+        return res
+
+    def eval(self, expr, field=None):
+        if isinstance(expr, Ask):
+
+            if isinstance(field, str):
+                label = field.replace('_', ' ')
+            else:
+                label = "уточните"
+
+            print(f"\n{label}?")
+            return expr.ask()
+
+        elif isinstance(expr, If):
+            return self.eval(expr.x, field=field)
+
+        elif isinstance(expr, AND) or isinstance(expr, list):
+            vals = expr.x if isinstance(expr, AND) else expr
+            for x in vals:
+                if self.eval(x) == 'n':
+                    return 'n'
+            return 'y'
+
+        elif isinstance(expr, OR):
+            for x in expr.x:
+                if self.eval(x) == 'y':
+                    return 'y'
+            return 'n'
+
+        elif isinstance(expr, str):
+            return self.get(expr)
+
+        else:
+            return 'n'
+
+rules: dict[str, Rule] = {
+    'default': Ask(['y', 'n']),
+}
+
+# будут спрашиваться по default (vibecodedddd)
+leaf_facts = [
+    'считаете_кожу_скорее_сухой',
+    'считаете_кожу_скорее_жирной',
+    'считаете_кожу_скорее_комбинированной',
+    'считаете_кожу_скорее_нормальной',
+    'есть_стянутость_после_умывания',
+    'есть_шелушения',
+    'есть_жирный_блеск_в_течение_дня',
+    'есть_частые_прыщи_или_воспаления',
+    'кожа_часто_краснеет_или_реагирует',
+    'есть_аллергия_на_отдушки',
+    'есть_тенденция_к_морщинам_антиэйдж',
+    'есть_пигментация_или_пятна',
+    'нравятся_легкие_текстуры',
+]
+
+rules.update({
+    'сухая_кожа': If(OR([
+        'считаете_кожу_скорее_сухой',
+        'есть_стянутость_после_умывания',
+        'есть_шелушения'
+    ])),
+
+    'жирная_кожа': If(OR([
+        'считаете_кожу_скорее_жирной',
+        'есть_жирный_блеск_в_течение_дня'
+    ])),
+
+    'комбинированная_кожа': If(OR([
+        'считаете_кожу_скорее_комбинированной',
+        AND(['есть_жирный_блеск_в_течение_дня', 'есть_стянутость_после_умывания'])
+    ])),
+
+    'нормальная_кожа': If('считаете_кожу_скорее_нормальной'),
+
+    'чувствительная_кожа': If(OR([
+        'кожа_часто_краснеет_или_реагирует',
+        'есть_аллергия_на_отдушки'
+    ])),
+
+    'склонность_к_акне': If('есть_частые_прыщи_или_воспаления'),
+
+    'нужен_антиэйдж': If('есть_тенденция_к_морщинам_антиэйдж'),
+    'нужна_коррекция_пигментации': If('есть_пигментация_или_пятна'),
+})
+
+rules.update({
+    'профиль:сухая_чувствительная': If(AND([
+        'сухая_кожа',
+        'чувствительная_кожа'
+    ])),
+    'профиль:жирная_акне': If(AND([
+        'жирная_кожа',
+        'склонность_к_акне'
+    ])),
+    'профиль:комбинированная_чувствительная': If(AND([
+        'комбинированная_кожа',
+        'чувствительная_кожа'
+    ])),
+    'профиль:нормальная': If('нормальная_кожа'),
+
+    'профиль:жирная_без_акне': If(AND([
+        'жирная_кожа',
+    ])),
+})
+
+# vibecoded))))
+RECOMMENDATIONS = {
+    'сухая_чувствительная': """
+Тип кожи: сухая, чувствительная.
+
+Умывание: мягкое средство без SLS и спирта (крем-гель или молочко).
+Тоник: без спирта, с успокаивающими компонентами (пантенол, аллантоин).
+Крем: плотный крем с церамидами, маслами, гиалуроновой кислотой, без отдушек.
+Дополнительно: 1–2 раза в неделю увлажняющая маска, избегать жёстких скрабов и сильных кислот.
+SPF: минеральный или гибридный фильтр, без отдушек, с комфортной текстурой.
+""",
+    'жирная_акне': """
+Тип кожи: жирная, склонная к акне.
+
+Умывание: мягкий гель без агрессивных сульфатов, 2 раза в день.
+Тоник/сыворотка: ниацинамид, BHA (салициловая кислота в низкой концентрации).
+Крем: лёгкий флюид/гель, non-comedogenic, без тяжёлых масел.
+Дополнительно: локальные средства с азелаиновой кислотой/БПО (по переносимости).
+SPF: лёгкий матирующий флюид, некомедогенный.
+""",
+    'комбинированная_чувствительная': """
+Тип кожи: комбинированная, чувствительная.
+
+Умывание: мягкий гель или пенка, не пересушивающие.
+Уход: на T-зону — более лёгкие текстуры, на щёки — более питательные.
+Крем: лёгкий крем без отдушек и спирта, с успокаивающими компонентами.
+Дополнительно: аккуратное использование кислот только на T-зону, маски по зонам.
+SPF: лёгкий крем/флюид без агрессивных отдушек.
+""",
+    'нормальная': """
+Тип кожи: нормальная.
+
+Умывание: мягкий гель/пенка по потребности (1–2 раза в день).
+Крем: базовый увлажняющий крем с глицерином/гиалуроновой кислотой.
+Дополнительно: по желанию — сыворотки с антиоксидантами (витамин C, ниацинамид).
+SPF: ежедневный SPF 30–50 с комфортной текстурой.
+""",
+    'жирная_без_акне': """
+Тип кожи: жирная, без выраженного акне.
+
+Умывание: мягкий гель, не до скрипа.
+Тоник/сыворотка: ниацинамид, лёгкие кислоты по переносимости.
+Крем: лёгкий увлажняющий гель или флюид, non-comedogenic.
+SPF: матирующий или лёгкий флюид.
+"""
+}
+
+
+def main():
+    kb = KnowledgeBase(rules)
+    profile = kb.get('профиль')
+
+    print("\n--- результат диагностики ---")
+    print(f"определённый профиль кожи: {profile}")
+
+    rec = RECOMMENDATIONS.get(profile)
+    if rec:
+        print(rec)
+    else:
+        print("профиль не удалось определить однозначно. "
+              "рекомендуется базовый мягкий уход и универсальный SPF.")
+
+
+if __name__ == '__main__':
+    main()
