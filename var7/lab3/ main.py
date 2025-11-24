@@ -14,6 +14,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 # x = T/RH/AH
 
 df = pd.read_csv("AirQuality.csv", delimiter=";", na_values=-200)
+print(df.head(), df.shape, df.isna().sum())
 
 df['DateTime'] = pd.to_datetime(
     df['Date'] + ' ' + df['Time'],
