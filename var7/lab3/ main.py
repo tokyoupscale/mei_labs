@@ -13,6 +13,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 # y = CO(GT)
 # x = T/RH/AH
 
+# цель - узнать линейную зависимость качества воздуха от температуры etc
 df = pd.read_csv("AirQuality.csv", delimiter=";", na_values=-200)
 print(df.head(), df.shape, df.isna().sum())
 
