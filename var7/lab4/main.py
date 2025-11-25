@@ -136,11 +136,11 @@ for name, model in models:
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
     axs[0].scatter(data_transformed[:, 0], data_transformed[:, 1],
-                   c=labels_vis, cmap='rainbow', s=5)
+                c=labels_vis, cmap='rainbow', s=5)
     axs[0].set_title(f'{name} - кластеры k-means')
 
     axs[1].scatter(data_transformed[:, 0], data_transformed[:, 1],
-                   c=schools_vis, cmap='rainbow', s=5)
+                c=schools_vis, cmap='rainbow', s=5)
     axs[1].set_title(f'{name} - распределение по школам')
 
     plt.tight_layout()

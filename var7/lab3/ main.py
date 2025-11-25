@@ -51,19 +51,17 @@ X = df_model[['T', 'RH', 'AH', 'hour', 'weekday', 'season']]
 y = df_model['CO(GT)']
 
 # я хз че это делает vibecoded ngl
-plt.figure(figsize=(16, 12))
 df.hist(bins=30, figsize=(16, 12), color='skyblue', edgecolor='black')
 plt.suptitle("распределения переменных датасета", fontsize=18)
 plt.show()
 
 sns.pairplot(df[['CO(GT)', 'T', 'RH', 'AH']], diag_kind='kde')
-plt.suptitle("scatterplot (CO, T, RH, AH)", y=1.02, fontsize=16)
+plt.suptitle("парная корелляция", y=1.02, fontsize=16)
 plt.show()
 
-plt.figure(figsize=(12, 8))
 corr = df[['CO(GT)', 'T', 'RH', 'AH']].corr()
 sns.heatmap(corr, annot=True, cmap='coolwarm', center=0)
-plt.title("корреляционная матрица CO, T, RH, AH", fontsize=16)
+plt.title("корреляционная матрица", fontsize=16)
 plt.show()
 
 print("корреляции CO(GT) с признаками:\n")
@@ -77,7 +75,6 @@ model = LinearRegression()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
-# лан хз
 mae = mean_absolute_error(y_test, y_pred)
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 r2 = r2_score(y_test, y_pred)
