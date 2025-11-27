@@ -2,15 +2,9 @@ import math
 from typing import List
 import numpy as np
 
-def f(x) -> float:
-    d1 = math.sqrt((1/5) + (math.exp(x))**(1/5))
-    d2 = abs(math.log(x**2) - 1.3)
-    
-    if d2 == 0:
-        return 0
-
-    result = d1/d2
-    return result
+def f(x) -> float | None:    
+    equation = 1.1*math.exp(x) + abs(math.cos(math.sqrt(math.pi*x))) - (4/9)
+    return equation
 
 def forsum(start: float, end: float, step: float) -> List[float]:
     result = []
@@ -37,13 +31,16 @@ class Dog:
     def bark(self):
         return print("Bark!")
     
-    def whoami(self, name: str):
+    def whoami(self):
+        name = self.name
         return print(f"эту собаку зовут {name}")
     
-    def howold(self, age: int):
+    def howold(self):
+        age = self.age
         return print(f"этой собаке {age} лет")
     
-    def whatkind(self, kind :str):
+    def whatkind(self):
+        kind = self.kind
         return print(f"эта собака породы {kind}")
 
     
@@ -54,9 +51,9 @@ def main():
 
     dog = Dog("Рекс", 5, "шпиц")
     dog.bark()
-    dog.whoami("Рекс")
-    dog.howold(5)
-    dog.whatkind("шпиц")
+    dog.whoami()
+    dog.howold()
+    dog.whatkind()
 
 if __name__ == "__main__":
     main()
